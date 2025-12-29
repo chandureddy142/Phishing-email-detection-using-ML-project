@@ -1,7 +1,13 @@
+# --- Web Server ---
+flask
+gunicorn
+
+# --- Machine Learning & Data ---
 pandas
 numpy
 scikit-learn
-flask
 joblib
-matplotlib
-seaborn
+
+# --- Optional (Only if you show plots in the UI) ---
+# matplotlib
+# seaborn
