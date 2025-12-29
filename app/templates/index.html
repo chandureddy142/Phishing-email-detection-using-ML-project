@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PhishGuard AI | Advanced Security</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">🛡️ PhishGuard</div>
+        <nav>
+            <div class="nav-item active">Scanner</div>
+            <div class="nav-item">98.27% Accuracy</div>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <h1>Security Analysis Dashboard</h1>
+            <p>Real-time Email Phishing Detection System</p>
+        </header>
+
+        <section class="scanner-box">
+            <form action="/predict" method="post">
+                <textarea name="email_content" placeholder="Paste email body here..." required>{{ original_text if original_text else '' }}</textarea>
+                <button type="submit">Execute Deep Scan</button>
+            </form>
+        </section>
+
+        {% if prediction %}
+        <section class="stats-grid">
+            <div class="card result {{ 'threat' if prediction == 'PHISHING' else 'safe' }}">
+                <h3>Detection</h3>
+                <div class="big-result">{{ prediction }}</div>
+            </div>
+
+            <div class="card">
+                <h3>Risk Score</h3>
+                <div class="gauge"><div class="gauge-fill" style="width: {{ risk_score }}%; background: {{ '#ff4b4b' if risk_score > 50 else '#2ecc71' }}"></div></div>
+                <div class="stat-val">{{ risk_score }}% Confidence</div>
+            </div>
+
+            <div class="card">
+                <h3>Performance</h3>
+                <p>Latency: {{ latency }}</p>
+                <p>Words: {{ word_count }}</p>
+            </div>
+        </section>
+
+        <section class="actions">
+            <form action="/download" method="post">
+                <input type="hidden" name="prediction" value="{{ prediction }}">
+                <input type="hidden" name="risk_score" value="{{ risk_score }}">
+                <input type="hidden" name="original_text" value="{{ original_text }}">
+                <button type="submit" class="btn-secondary">📥 Download Security Report</button>
+            </form>
+        </section>
+        {% endif %}
+    </div>
+</body>
+</html>
