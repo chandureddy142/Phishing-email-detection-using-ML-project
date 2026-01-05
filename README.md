@@ -1,18 +1,27 @@
-## 🧠 Technical Implementation (NLP & Machine Learning)
+# 🛡️ PhishGuard 5.0 | Neural Security Terminal
 
-This project utilizes a full **Natural Language Processing (NLP)** pipeline to facilitate high-accuracy classification:
+**PhishGuard 5.0** is a high-fidelity, multi-layered cybersecurity forensic tool designed to detect, analyze, and report phishing attempts. It combines **Machine Learning (AI)**, **Heuristic Analysis**, and **Real-time Threat Intelligence** into a reactive, glassmorphism-style "War Room" dashboard.
 
-### 1. NLP Preprocessing Pipeline
-- **Case Folding:** Normalizing text to lowercase to ensure uniform feature extraction.
-- **Regex-based Noise Reduction:** Systematically removing punctuation, special characters, and digits to focus on linguistic intent.
-- **Stop-Word Elimination:** Filtering out non-informative English words (e.g., 'the', 'is', 'at') to reduce feature noise.
-- **Tokenization:** Breaking down raw email strings into individual word-level tokens for analysis.
 
-### 2. Feature Engineering
-- **TF-IDF Vectorization:** Implementing *Term Frequency-Inverse Document Frequency* to transform text into numerical vectors. This ensures that words unique to phishing (like 'suspended' or 'verify') are given higher mathematical weight than common words.
-- **Feature Limiting:** Restricted to the top 5,000 features to maintain a low memory footprint and ensure <200ms inference latency.
 
-### 3. Machine Learning Architecture
-- **Algorithm:** Random Forest Classifier (Ensemble Learning).
-- **Consensus Voting:** Utilizing 100 individual decision trees to determine the final class, significantly reducing the risk of overfitting.
-- **Performance Metrics:** Achieved a **98.27% Accuracy** and a **0.98 F1-Score**, meeting all project safety and reliability benchmarks.
+## 🌟 Core Features
+
+- **Neural Linguistic Engine**: Leverages TF-IDF vectorization and a Naive Bayes/Random Forest model to analyze the "intent" and emotional triggers of a message.
+- **Explainable AI (XAI)**: Unlike "black-box" systems, PhishGuard identifies and lists specific forensic markers (e.g., *Urgent, Verify, Password*) used to reach its verdict.
+- **4-Layer Defense Grid**:
+    1. **Neural Layer**: Intent & Probability analysis.
+    2. **Heuristic Layer**: Keyword & Pattern matching.
+    3. **Reputation Layer**: Live Google Safe Browsing API integration.
+    4. **Identity Layer**: Domain whitelisting and Spoof detection.
+- **Interactive HUD**: A responsive Glassmorphism UI with live-moving "Satellite Tracking" background nodes and a scanning laser effect.
+- **Forensic PDF Export**: One-click generation of professional audit reports for security compliance.
+
+## 🛠️ Tech Stack
+
+- **Backend**: Python 3.9+ / Flask
+- **Machine Learning**: Scikit-Learn / Joblib
+- **Database**: SQLite / SQLAlchemy
+- **Frontend**: Tailwind CSS / Lucide Icons / Vanilla JS (ES6)
+- **APIs**: Google Safe Browsing V4
+- **Reporting**: FPDF
+

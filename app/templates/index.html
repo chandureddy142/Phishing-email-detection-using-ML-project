@@ -2,64 +2,203 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhishGuard AI | Dashboard</title>
+    <title>PhishGuard 5.0 | Neural Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
 </head>
-<body>
-    <div class="sidebar">
-        <div class="logo">🛡️ PhishGuard</div>
-        <div class="nav-item active">Scanner</div>
-        <div class="nav-status">System: Online</div>
+
+<body class="min-h-screen relative overflow-hidden transition-all duration-1000 
+    {% if prediction == 'PHISHING' %} bg-red-950/60 
+    {% elif prediction == 'LEGITIMATE' %} bg-emerald-950/60 
+    {% else %} bg-slate-950/30 {% endif %}">
+
+    <div class="fixed inset-0 z-0 overflow-hidden">
+        <div class="threat-map w-full h-full opacity-30" id="mapLayer">
+            <div class="pulse-dot"></div>
+            <div class="pulse-dot"></div>
+            <div class="pulse-dot"></div>
+            <div class="pulse-dot"></div>
+            <div class="pulse-dot"></div>
+        </div>
+        <div class="absolute inset-0 bg-black/20 backdrop-blur-[1px]"></div>
     </div>
 
-    <div class="main-content">
-        <header>
-            <h1>Email Security Audit</h1>
-            <p>AI-Powered Phishing Detection (98.27% Accuracy)</p>
-        </header>
+    <main class="relative z-10 flex flex-col items-center justify-center min-h-[85vh] p-6">
+        <div class="w-full max-w-6xl h-[600px] glass-terminal rounded-3xl relative overflow-hidden flex flex-col transition-all duration-700">
+            
+            <div id="scanBar" class="scanning-bar hidden"></div>
 
-        <section class="scanner-box">
-            <form action="/predict" method="post">
-                <textarea name="email_content" placeholder="Paste email headers or body here..." required>{{ original_text if original_text else '' }}</textarea>
-                <button type="submit">Execute Deep Scan</button>
-            </form>
-        </section>
-
-        {% if prediction %}
-        <div class="results-area">
-            <div class="stats-grid">
-                <div class="card {{ 'threat' if prediction == 'PHISHING' else 'safe' }}">
-                    <h3>Verdict</h3>
-                    <div class="big-result">{{ prediction }}</div>
-                </div>
-
-                <div class="card">
-                    <h3>Risk Level</h3>
-                    <div class="gauge">
-                        <div class="gauge-fill" style="width: {{ risk_score }}%; background: {{ '#ff4b4b' if risk_score > 50 else '#2ecc71' }}"></div>
+            {% if not prediction %}
+            <form id="scanForm" action="/predict" method="POST" class="h-full flex flex-col p-10 animate-in fade-in">
+                <div class="flex justify-between items-center mb-8 text-white">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="activity" class="text-white w-5 h-5 animate-pulse"></i>
+                        <h2 class="text-xs font-black tracking-[0.3em] uppercase text-slate-200">Neural Ingestion Stream</h2>
                     </div>
-                    <div class="stat-val">{{ risk_score }}% Confidence</div>
+                    <span id="systemStatus" class="text-[10px] font-mono text-white bg-white/10 px-2 py-1 rounded border border-white/20 uppercase">SYSTEM_READY</span>
+                </div>
+                
+                <textarea id="emailText" name="email_content" 
+                    placeholder="DROP DATA PAYLOAD HERE FOR DEEP-LAYER INSPECTION..."
+                    class="flex-1 bg-transparent border-none outline-none text-white placeholder:text-slate-700 font-mono text-2xl resize-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"></textarea>
+
+                <div id="terminalConsole" class="hidden flex-1 bg-black/60 rounded-2xl border border-white/5 p-6 mb-4 font-mono text-[11px] text-slate-300 overflow-y-auto">
+                    <div id="logLines" class="flex flex-col gap-1"></div>
+                </div>
+                
+                <button type="submit" id="submitBtn" class="w-full bg-white/10 hover:bg-white/20 text-white font-black py-5 rounded-2xl tracking-[0.5em] uppercase border border-white/20 backdrop-blur-md transition-all">
+                    EXECUTE_SCAN
+                </button>
+            </form>
+
+            {% else %}
+            <div class="h-full flex flex-col p-10 animate-in zoom-in-95 text-white">
+                <div class="flex justify-between items-start mb-8 border-b border-white/10 pb-6">
+                    <div>
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Analysis Verdict</p>
+                        <h2 class="text-7xl font-black tracking-tighter {{ 'text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]' if prediction == 'PHISHING' else 'text-emerald-400' }}">
+                            {{ prediction }}
+                        </h2>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold text-white">Risk Weight</p>
+                        <p class="text-5xl font-mono text-white">{{ risk_score }}%</p>
+                    </div>
                 </div>
 
-                <div class="card">
-                    <h3>Performance</h3>
-                    <p>Latency: {{ latency }}</p>
-                    <p>Word Count: {{ word_count }}</p>
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 overflow-hidden">
+                    <div class="p-6 bg-black/40 rounded-2xl border border-white/10 flex flex-col overflow-hidden">
+                        <p class="text-[10px] text-slate-400 font-bold mb-4 uppercase tracking-widest">Submitted Content</p>
+                        <div class="flex-1 overflow-y-auto font-mono text-sm opacity-80 leading-relaxed pr-2">
+                            {{ original_text }}
+                        </div>
+                    </div>
+
+                    <div class="p-6 bg-black/40 rounded-2xl border border-white/10 flex flex-col overflow-hidden">
+                        <p class="text-[10px] text-red-500 font-bold mb-4 uppercase tracking-widest">Identified Content</p>
+                        <div class="flex-1 overflow-y-auto">
+                            {% if identified_words %}
+                            <ul class="space-y-3">
+                                {% for word in identified_words %}
+                                <li class="flex items-center gap-3 text-red-400 font-mono text-sm uppercase">
+                                    <i data-lucide="alert-triangle" class="w-4 h-4 text-red-500"></i>
+                                    <span class="bg-red-500/10 px-2 py-1 rounded border border-red-500/20">{{ word }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p class="text-xs text-slate-500 italic">No markers identified.</p>
+                            {% endif %}
+                            
+                            <div class="mt-8 pt-6 border-t border-white/5 space-y-4">
+                                <div class="flex justify-between items-center bg-black/20 p-4 rounded-xl border border-white/5">
+                                    <div class="flex items-center gap-3">
+                                        {% if google_status == 'DANGEROUS' or prediction == 'PHISHING' %}
+                                            <i data-lucide="shield-alert" class="text-red-500 w-6 h-6 animate-pulse"></i>
+                                            <p class="text-lg font-black text-red-500 uppercase">Dangerous</p>
+                                        {% else %}
+                                            <i data-lucide="shield-check" class="text-emerald-400 w-6 h-6"></i>
+                                            <p class="text-lg font-black text-emerald-400 uppercase">Clean</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-4">
+                    <a href="/" class="flex-1 bg-white/5 hover:bg-white/10 text-white text-center py-5 rounded-xl font-black tracking-widest text-xs border border-white/10 transition-all">
+                        NEW_SCAN
+                    </a>
+                    <form action="/download_report" method="POST" class="flex-1">
+                        <input type="hidden" name="prediction" value="{{ prediction }}">
+                        <input type="hidden" name="score" value="{{ risk_score }}">
+                        <input type="hidden" name="original_text" value="{{ original_text }}">
+                        {% for word in identified_words %}<input type="hidden" name="identified_words" value="{{ word }}">{% endfor %}
+                        <button class="w-full bg-white/10 hover:bg-white/20 text-white py-5 rounded-xl font-bold tracking-widest text-xs border border-white/20">
+                            DOWNLOAD_REPORT.PDF
+                        </button>
+                    </form>
                 </div>
             </div>
+            {% endif %}
+        </div>
+    </main>
 
-            <div class="actions">
-                <form action="/download" method="post">
-                    <input type="hidden" name="prediction" value="{{ prediction }}">
-                    <input type="hidden" name="risk_score" value="{{ risk_score }}">
-                    <input type="hidden" name="original_text" value="{{ original_text }}">
-                    <button type="submit" class="btn-secondary">📥 Download Security Report</button>
-                </form>
+    <footer class="fixed bottom-0 w-full z-30 p-8 border-t border-white/5 bg-black/60 backdrop-blur-2xl text-white">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex gap-20">
+                <div class="text-center">
+                    <p class="text-[9px] text-slate-500 uppercase font-black tracking-widest mb-1">Inspections</p>
+                    <p class="text-3xl font-mono font-bold">{{ total_scans }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-[9px] text-slate-500 uppercase font-black tracking-widest mb-1">Detections</p>
+                    <p class="text-3xl font-mono font-bold text-red-500">{{ total_phishing }}</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 bg-white/5 px-6 py-3 rounded-xl border border-white/10">
+                <i data-lucide="globe" class="text-white w-4 h-4"></i>
+                <p class="text-[10px] font-black text-white tracking-widest uppercase">Nodes Online</p>
             </div>
         </div>
-        {% endif %}
-    </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // 🟢 Dot Movement Logic
+        const dots = document.querySelectorAll('.pulse-dot');
+        function moveDots() {
+            dots.forEach(dot => {
+                const x = Math.floor(Math.random() * 90) + 5;
+                const y = Math.floor(Math.random() * 80) + 10;
+                dot.style.left = `${x}%`;
+                dot.style.top = `${y}%`;
+            });
+        }
+        setInterval(moveDots, 4000);
+        moveDots(); // Initial call
+
+        // 🟢 Scan Logic
+        document.getElementById('scanForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const textarea = document.getElementById('emailText');
+            const consoleBox = document.getElementById('terminalConsole');
+            const logContainer = document.getElementById('logLines');
+            const scanBar = document.getElementById('scanBar');
+            const btn = document.getElementById('submitBtn');
+
+            textarea.classList.add('hidden');
+            consoleBox.classList.remove('hidden');
+            scanBar.classList.remove('hidden');
+            btn.disabled = true;
+            btn.innerText = "SCANNING...";
+
+            const logs = [
+                "Establishing node connection...",
+                "Tokenizing linguistic payload...",
+                "Analyzing Heuristic Patterns...",
+                "Requesting Reputation API...",
+                "Finalizing Verdict..."
+            ];
+
+            let i = 0;
+            const logTimer = setInterval(() => {
+                if (i < logs.length) {
+                    const line = document.createElement('div');
+                    line.innerText = `> ${logs[i]}`;
+                    logContainer.appendChild(line);
+                    i++;
+                } else {
+                    clearInterval(logTimer);
+                    form.submit();
+                }
+            }, 450);
+        });
+    </script>
 </body>
 </html>
