@@ -25,3 +25,7 @@
 - **APIs**: Google Safe Browsing V4
 - **Reporting**: FPDF
 
+## 🚀 Setup
+1. Install requirements: `pip install -r requirements.txt`
+2. Run the engine: `python app.py`
+3. Access the terminal: `http://127.0.0.1:5000`
