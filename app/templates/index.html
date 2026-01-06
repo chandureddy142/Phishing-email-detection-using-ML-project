@@ -6,6 +6,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
 </head>
 
 <body class="min-h-screen relative overflow-hidden transition-all duration-1000 
@@ -13,16 +14,38 @@
     {% elif prediction == 'LEGITIMATE' %} bg-emerald-950/60 
     {% else %} bg-slate-950/30 {% endif %}">
 
-    <div class="fixed inset-0 z-0 overflow-hidden">
-        <div class="threat-map w-full h-full opacity-30" id="mapLayer">
-            <div class="pulse-dot"></div>
-            <div class="pulse-dot"></div>
-            <div class="pulse-dot"></div>
-            <div class="pulse-dot"></div>
-            <div class="pulse-dot"></div>
-        </div>
-        <div class="absolute inset-0 bg-black/20 backdrop-blur-[1px]"></div>
+<body class="..." 
+    style="{% if prediction == 'PHISHING' %} --dot-color: #ef4444; 
+        {% elif prediction == 'LEGITIMATE' %} --dot-color: #10b981; 
+        {% else %} --dot-color: #f8fafc; {% endif %}">
+
+<div class="fixed inset-0 z-0 overflow-hidden">
+    <div class="threat-map w-full h-full opacity-30 absolute inset-0"></div> 
+    <div id="mapLayer" class="w-full h-full relative">
+        <div class="pulse-dot"></div>
+        <div class="pulse-dot"></div>
+        <div class="pulse-dot"></div>
+        <div class="pulse-dot"></div>
+        <div class="pulse-dot"></div>
     </div>
+
+    <div class="absolute top-10 left-10 z-10 flex items-center gap-4 opacity-90 pointer-events-none">
+    <div class="p-3 bg-white/5 rounded-2xl border border-white/20 backdrop-blur-md logo-glow-container">
+        <i data-lucide="shield-check" class="text-white w-8 h-8 icon-glow"></i>
+    </div>
+    
+    <div class="flex flex-col">
+        <h1 class="text-2xl font-black tracking-[0.3em] uppercase text-white leading-none logo-text-glow">
+            PHISH<span class="text-emerald-500">GUARD</span>
+        </h1>
+        <p class="text-[9px] font-mono text-black-500 tracking-[0.4em] uppercase mt-1 glow-subtext">
+            THE NEXT LAYER OF DEFENSE
+        </p>
+    </div>
+</div>
+
+    <div class="absolute inset-0 bg-black/20 backdrop-blur-[1px]"></div>
+</div>
 
     <main class="relative z-10 flex flex-col items-center justify-center min-h-[85vh] p-6">
         <div class="w-full max-w-6xl h-[600px] glass-terminal rounded-3xl relative overflow-hidden flex flex-col transition-all duration-700">
@@ -34,21 +57,29 @@
                 <div class="flex justify-between items-center mb-8 text-white">
                     <div class="flex items-center gap-3">
                         <i data-lucide="activity" class="text-white w-5 h-5 animate-pulse"></i>
-                        <h2 class="text-xs font-black tracking-[0.3em] uppercase text-slate-200">Neural Ingestion Stream</h2>
+                        <h2 class="text-xs font-black tracking-[0.3em] uppercase text-slate-200">Phishing Heuristics Engine</h2>
                     </div>
-                    <span id="systemStatus" class="text-[10px] font-mono text-white bg-white/10 px-2 py-1 rounded border border-white/20 uppercase">SYSTEM_READY</span>
+                    
+                    {% if error_msg %}
+                    <span class="text-[10px] font-mono text-red-400 bg-red-500/10 px-3 py-1 rounded border border-red-500/30 uppercase animate-pulse">
+                        [!] {{ error_msg }}
+                    </span>
+                    {% else %}
+                    <span id="systemStatus" class="text-[10px] font-mono text-white bg-white/10 px-2 py-1 rounded border border-white/20 uppercase tracking-widest">SYSTEM ONLINE</span>
+                    {% endif %}
                 </div>
                 
-                <textarea id="emailText" name="email_content" 
+                <textarea id="emailText" name="email_content" required
                     placeholder="DROP DATA PAYLOAD HERE FOR DEEP-LAYER INSPECTION..."
-                    class="flex-1 bg-transparent border-none outline-none text-white placeholder:text-slate-700 font-mono text-2xl resize-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"></textarea>
+                    class="flex-1 bg-transparent border-none outline-none text-white placeholder-white/50 placeholder:italic font-mono text-2xl resize-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"></textarea>
 
                 <div id="terminalConsole" class="hidden flex-1 bg-black/60 rounded-2xl border border-white/5 p-6 mb-4 font-mono text-[11px] text-slate-300 overflow-y-auto">
                     <div id="logLines" class="flex flex-col gap-1"></div>
                 </div>
                 
-                <button type="submit" id="submitBtn" class="w-full bg-white/10 hover:bg-white/20 text-white font-black py-5 rounded-2xl tracking-[0.5em] uppercase border border-white/20 backdrop-blur-md transition-all">
-                    EXECUTE_SCAN
+                <button type="submit" id="submitBtn" class="w-full bg-white/10 hover:bg-white/20 text-white font-black py-5 rounded-2xl tracking-[0.5em] uppercase border border-white/20 backdrop-blur-md transition-all flex items-center justify-center gap-3">
+                    <i id="btnSpinner" data-lucide="loader-2" class="w-5 h-5 animate-spin hidden"></i>
+                    <span id="btnText">EXECUTE SCAN</span>
                 </button>
             </form>
 
@@ -62,21 +93,21 @@
                         </h2>
                     </div>
                     <div class="text-right">
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold text-white">Risk Weight</p>
-                        <p class="text-5xl font-mono text-white">{{ risk_score }}%</p>
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">threat Severity</p>
+                        <p class="text-5xl font-mono">{{ risk_score }}%</p>
                     </div>
                 </div>
 
                 <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 overflow-hidden">
                     <div class="p-6 bg-black/40 rounded-2xl border border-white/10 flex flex-col overflow-hidden">
                         <p class="text-[10px] text-slate-400 font-bold mb-4 uppercase tracking-widest">Submitted Content</p>
-                        <div class="flex-1 overflow-y-auto font-mono text-sm opacity-80 leading-relaxed pr-2">
+                        <div class="flex-1 overflow-y-auto font-mono text-sm opacity-80 leading-relaxed">
                             {{ original_text }}
                         </div>
                     </div>
 
                     <div class="p-6 bg-black/40 rounded-2xl border border-white/10 flex flex-col overflow-hidden">
-                        <p class="text-[10px] text-red-500 font-bold mb-4 uppercase tracking-widest">Identified Content</p>
+                        <p class="text-[10px] text-red-500 font-bold mb-4 uppercase tracking-widest">Forensic Markers</p>
                         <div class="flex-1 overflow-y-auto">
                             {% if identified_words %}
                             <ul class="space-y-3">
@@ -91,17 +122,15 @@
                             <p class="text-xs text-slate-500 italic">No markers identified.</p>
                             {% endif %}
                             
-                            <div class="mt-8 pt-6 border-t border-white/5 space-y-4">
-                                <div class="flex justify-between items-center bg-black/20 p-4 rounded-xl border border-white/5">
-                                    <div class="flex items-center gap-3">
-                                        {% if google_status == 'DANGEROUS' or prediction == 'PHISHING' %}
-                                            <i data-lucide="shield-alert" class="text-red-500 w-6 h-6 animate-pulse"></i>
-                                            <p class="text-lg font-black text-red-500 uppercase">Dangerous</p>
-                                        {% else %}
-                                            <i data-lucide="shield-check" class="text-emerald-400 w-6 h-6"></i>
-                                            <p class="text-lg font-black text-emerald-400 uppercase">Clean</p>
-                                        {% endif %}
-                                    </div>
+                            <div class="mt-8 pt-6 border-t border-white/5">
+                                <div class="flex items-center gap-3 bg-black/20 p-4 rounded-xl border border-white/5">
+                                    {% if google_status == 'DANGEROUS' or prediction == 'PHISHING' %}
+                                        <i data-lucide="shield-alert" class="text-red-500 w-6 h-6 animate-pulse"></i>
+                                        <p class="text-lg font-black text-red-500 uppercase">Dangerous</p>
+                                    {% else %}
+                                        <i data-lucide="shield-check" class="text-emerald-400 w-6 h-6"></i>
+                                        <p class="text-lg font-black text-emerald-400 uppercase">Clean</p>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -110,15 +139,16 @@
 
                 <div class="mt-8 flex gap-4">
                     <a href="/" class="flex-1 bg-white/5 hover:bg-white/10 text-white text-center py-5 rounded-xl font-black tracking-widest text-xs border border-white/10 transition-all">
-                        NEW_SCAN
+                        NEW SCAN
                     </a>
                     <form action="/download_report" method="POST" class="flex-1">
                         <input type="hidden" name="prediction" value="{{ prediction }}">
                         <input type="hidden" name="score" value="{{ risk_score }}">
                         <input type="hidden" name="original_text" value="{{ original_text }}">
+                        <input type="hidden" name="google_status" value="{{ google_status }}">
                         {% for word in identified_words %}<input type="hidden" name="identified_words" value="{{ word }}">{% endfor %}
                         <button class="w-full bg-white/10 hover:bg-white/20 text-white py-5 rounded-xl font-bold tracking-widest text-xs border border-white/20">
-                            DOWNLOAD_REPORT.PDF
+                            DOWNLOAD REPORT
                         </button>
                     </form>
                 </div>
@@ -127,29 +157,33 @@
         </div>
     </main>
 
-    <footer class="fixed bottom-0 w-full z-30 p-8 border-t border-white/5 bg-black/60 backdrop-blur-2xl text-white">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex gap-20">
-                <div class="text-center">
-                    <p class="text-[9px] text-slate-500 uppercase font-black tracking-widest mb-1">Inspections</p>
-                    <p class="text-3xl font-mono font-bold">{{ total_scans }}</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-[9px] text-slate-500 uppercase font-black tracking-widest mb-1">Detections</p>
-                    <p class="text-3xl font-mono font-bold text-red-500">{{ total_phishing }}</p>
-                </div>
+<footer class="fixed bottom-0 w-full z-30 p-10 no-bg-footer text-white">
+    <div class="max-w-7xl mx-auto flex flex-col items-center justify-center gap-6">
+        
+        <div class="flex gap-24">
+            <div class="text-center">
+                <p class="text-[10px] text-slate-400 uppercase font-black tracking-[0.3em] mb-2">Payloads Audited</p>
+                <p class="text-5xl font-mono font-bold stat-counter" data-target="{{ total_scans }}">0</p>
             </div>
-            <div class="flex items-center gap-4 bg-white/5 px-6 py-3 rounded-xl border border-white/10">
-                <i data-lucide="globe" class="text-white w-4 h-4"></i>
-                <p class="text-[10px] font-black text-white tracking-widest uppercase">Nodes Online</p>
+            <div class="text-center">
+                <p class="text-[10px] text-slate-400 uppercase font-black tracking-[0.3em] mb-2">Threats detected</p>
+                <p class="text-5xl font-mono font-bold text-red-500 stat-counter" data-target="{{ total_phishing }}">0</p>
             </div>
         </div>
-    </footer>
+
+        <div class="flex items-center gap-3 bg-white/5 px-6 py-2 rounded-full border border-white/10 backdrop-blur-md">
+            <i data-lucide="zap" class="w-3 h-3 text-white-500/70"></i>
+            <p id="latencyDisplay" class="text-[9px] font-mono text-White-500/70 tracking-[0.4em] uppercase">
+                Latency: 14ms
+            </p>
+        </div>
+    </div>
+</footer>
 
     <script>
         lucide.createIcons();
 
-        // 🟢 Dot Movement Logic
+        // 🗺️ Background Dot Telemetry
         const dots = document.querySelectorAll('.pulse-dot');
         function moveDots() {
             dots.forEach(dot => {
@@ -160,45 +194,95 @@
             });
         }
         setInterval(moveDots, 4000);
-        moveDots(); // Initial call
+        moveDots(); 
 
-        // 🟢 Scan Logic
+        // 📈 Number Rolling Animation (0 to Target)
+        function animateCounters() {
+            const counters = document.querySelectorAll('.stat-counter');
+            counters.forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-target'));
+                const duration = 2000; 
+                const startTime = performance.now();
+
+                function update(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easedProgress = 1 - Math.pow(1 - progress, 3);
+                    const currentCount = Math.floor(easedProgress * target);
+                    
+                    counter.innerText = currentCount;
+
+                    if (progress < 1) {
+                        requestAnimationFrame(update);
+                    } else {
+                        counter.innerText = target;
+                        counter.classList.add('animate-pulse-once');
+                    }
+                }
+                requestAnimationFrame(update);
+            });
+        }
+        window.addEventListener('load', animateCounters);
+
+        // ⚡ Execution Logic & Terminal Logs
         document.getElementById('scanForm')?.addEventListener('submit', function(e) {
-            e.preventDefault();
+            e.preventDefault(); // Stop immediate submission
+            
             const form = this;
             const textarea = document.getElementById('emailText');
             const consoleBox = document.getElementById('terminalConsole');
             const logContainer = document.getElementById('logLines');
             const scanBar = document.getElementById('scanBar');
             const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
 
+            // Validation
+            if (textarea.value.trim().length < 2) {
+                alert("CRITICAL: Input Stream Empty. Paste data payload.");
+                return;
+            }
+
+            // Reset UI for Animation
+            logContainer.innerHTML = ''; 
             textarea.classList.add('hidden');
             consoleBox.classList.remove('hidden');
-            scanBar.classList.remove('hidden');
+            scanBar.classList.remove('hidden'); 
+            
+            // Button Loading State
             btn.disabled = true;
-            btn.innerText = "SCANNING...";
+            btnText.innerText = "PROCESSING...";
+            btnSpinner.classList.remove('hidden');
 
             const logs = [
-                "Establishing node connection...",
-                "Tokenizing linguistic payload...",
-                "Analyzing Heuristic Patterns...",
-                "Requesting Reputation API...",
-                "Finalizing Verdict..."
+                "Establishing secure node connection...",
+                "Extracting linguistic vectors...",
+                "Running Neural Classification...",
+                "Querying Global Reputation Database...",
+                "Verifying Identity Whitelist...",
+                "Finalizing Forensic Verdict..."
             ];
 
             let i = 0;
             const logTimer = setInterval(() => {
                 if (i < logs.length) {
                     const line = document.createElement('div');
+                    line.className = "opacity-0 translate-x-[-10px] transition-all duration-300 py-1 font-mono text-emerald-500/80";
                     line.innerText = `> ${logs[i]}`;
                     logContainer.appendChild(line);
+                    
+                    // Trigger animation frame
+                    setTimeout(() => line.classList.remove('opacity-0', 'translate-x-[-10px]'), 10);
                     i++;
                 } else {
                     clearInterval(logTimer);
+                    // Final Handover
+                    btnText.innerText = "ANALYSING...";
                     form.submit();
                 }
-            }, 450);
+            }, 500);
         });
     </script>
 </body>
 </html>
+

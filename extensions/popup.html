@@ -1,18 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <style>
-        /* ... previous styles ... */
-        .tip { font-size: 0.7rem; color: #8b949e; margin-bottom: 12px; font-style: italic; }
-    </style>
+    <meta charset="UTF-8" />
+    <title>PhishGuard AI</title>
+    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <h3>PhishGuard AI</h3>
-    <p class="tip"><strong>Pro Tip:</strong> Highlight the specific email message text before clicking scan for maximum ML precision.</p>
-    
-    <button id="scanBtn" class="btn">SCAN SELECTION</button>
-    <div id="loading" class="loading-text" style="display:none;">Analyzing with ML Engine...</div>
-    <div id="result"></div>
+    <div class="container">
+        <header>
+            <h3>🛡️ PhishGuard AI</h3>
+            <p class="tip">
+                Highlight email content before scanning for best accuracy.
+            </p>
+        </header>
+
+        <button id="scanBtn" class="btn pulse">
+            SCAN SELECTION
+        </button>
+
+        <div id="loading" class="loader hidden">
+            <div class="spinner"></div>
+            <span>Analyzing with ML Engine…</span>
+        </div>
+
+        <div id="result" class="result hidden"></div>
+    </div>
 
     <script src="popup.js"></script>
 </body>

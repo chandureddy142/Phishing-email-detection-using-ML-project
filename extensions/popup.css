@@ -1,0 +1,156 @@
+/* ===== GLOBAL ===== */
+body {
+    margin: 0;
+    font-family: "Inter", system-ui, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    width: 320px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Matrix-style background noise */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 170, 0.03),
+        rgba(0, 255, 170, 0.03) 1px,
+        transparent 1px,
+        transparent 4px
+    );
+    pointer-events: none;
+}
+
+/* ===== LAYOUT ===== */
+.container {
+    padding: 14px;
+}
+
+header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.tip {
+    font-size: 0.7rem;
+    color: #8b949e;
+    margin: 6px 0 14px;
+    font-style: italic;
+}
+
+/* ===== BUTTON (CYBER SCAN) ===== */
+.btn {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #00ffaa, #2ea043);
+    border: none;
+    color: #041f17;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 18px rgba(0, 255, 170, 0.6);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Scan-line animation */
+.pulse::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        120deg,
+        transparent 30%,
+        rgba(0, 255, 170, 0.6),
+        transparent 70%
+    );
+    animation: scanGlow 1.8s infinite;
+}
+
+@keyframes scanGlow {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+}
+
+/* ===== LOADER ===== */
+.loader {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.75rem;
+    color: #00ffaa;
+}
+
+/* Neon spinner */
+.spinner {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 255, 170, 0.2);
+    border-top: 2px solid #00ffaa;
+    box-shadow: 0 0 8px #00ffaa;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Glitch analyzing text */
+.loader span {
+    letter-spacing: 0.5px;
+    animation: glitch 1.4s infinite;
+}
+
+@keyframes glitch {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; text-shadow: 0 0 6px #00ffaa; }
+    100% { opacity: 0.5; }
+}
+
+/* ===== UTIL ===== */
+.hidden {
+    display: none;
+}
+
+/* ===== RESULT CARDS (SOC STYLE) ===== */
+.result {
+    margin-top: 14px;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    animation: fadeIn 0.4s ease;
+}
+
+/* SAFE */
+.safe {
+    background: rgba(0, 255, 170, 0.08);
+    border-left: 4px solid #00ffaa;
+    box-shadow: 0 0 14px rgba(0, 255, 170, 0.35);
+}
+
+/* PHISHING */
+.danger {
+    background: rgba(255, 60, 60, 0.12);
+    border-left: 4px solid #ff3c3c;
+    box-shadow: 0 0 14px rgba(255, 60, 60, 0.4);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
