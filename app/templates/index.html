@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PhishGuard 5.0 | Neural Terminal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="min-h-screen transition-all duration-1000
+    {% if prediction == 'PHISHING' %} state-phishing
+    {% elif prediction == 'LEGITIMATE' %} state-legit
+    {% else %} state-idle {% endif %}"
+    style="{% if prediction == 'PHISHING' %}--dot-color:#ef4444;{% elif prediction == 'LEGITIMATE' %}--dot-color:#10b981;{% else %}--dot-color:#f8fafc;{% endif %}">
+
+<!-- ═══════════════════════════ FIXED BACKGROUND ═══════════════════════════ -->
+<div class="fixed inset-0 z-0">
+    <div class="threat-map w-full h-full opacity-30 absolute inset-0"></div>
+    <div id="mapLayer" class="w-full h-full relative">
+        <div class="pulse-dot"></div><div class="pulse-dot"></div>
+        <div class="pulse-dot"></div><div class="pulse-dot"></div>
+        <div class="pulse-dot"></div>
+    </div>
+    <!-- overlay is pointer-events-none so it never blocks buttons -->
+    <div class="absolute inset-0 bg-black/20 backdrop-blur-[1px] pointer-events-none"></div>
+</div>
+
+<!-- ═══════════════════════════ FIXED NAV BAR ═══════════════════════════ -->
+<nav class="fixed top-0 left-0 right-0 z-30">
+    <div class="flex items-center justify-between px-10 py-6" style="position:relative">
+    <!-- Logo -->
+    <div class="flex items-center gap-4">
+        <div class="p-3 bg-white/5 rounded-2xl border border-white/20 backdrop-blur-md logo-glow-container">
+            <i data-lucide="shield-check" class="text-white w-8 h-8 icon-glow"></i>
+        </div>
+        <div class="flex flex-col">
+            <h1 class="text-2xl font-black tracking-[0.3em] uppercase text-white leading-none logo-text-glow">
+                PHISH<span class="text-emerald-500">GUARD</span>
+            </h1>
+            <p class="text-[9px] font-mono tracking-[0.4em] uppercase mt-1 glow-subtext">THE NEXT LAYER OF DEFENSE</p>
+        </div>
+    </div>
+
+    <!-- ═══ CENTER STORY ANIMATION ═══ -->
+    <div class="ns-wrap" aria-hidden="true">
+        <div class="ns-scene">
+            <div class="ns-track-l"></div>
+            <div class="ns-track-r"></div>
+
+            <!-- ATTACKER (left) -->
+            <div class="ns-char ns-atk-char">
+                <div class="ns-atk-glow"></div>
+                <svg class="ns-atk-icon" width="26" height="26" viewBox="0 0 28 28" fill="none">
+                    <rect x="4" y="5" width="20" height="13" rx="2" fill="rgba(239,68,68,0.12)" stroke="rgba(239,68,68,0.65)" stroke-width="1.2"/>
+                    <circle cx="10.5" cy="10.5" r="1.5" fill="#f87171"/><circle cx="17.5" cy="10.5" r="1.5" fill="#f87171"/>
+                    <path d="M11 13.5h6" stroke="#f87171" stroke-width="1" stroke-linecap="round"/>
+                    <path d="M10 15h2.5M15.5 15h2.5" stroke="#f87171" stroke-width="0.8" stroke-linecap="round"/>
+                    <path d="M12 18h4M11 20h6" stroke="rgba(239,68,68,0.4)" stroke-width="1" stroke-linecap="round"/>
+                    <circle class="ns-type-d1" cx="4" cy="23" r="1" fill="#f87171"/>
+                    <circle class="ns-type-d2" cx="8" cy="23" r="1" fill="#f87171"/>
+                    <circle class="ns-type-d3" cx="12" cy="23" r="1" fill="#f87171"/>
+                </svg>
+                <span class="ns-char-lbl ns-atk-lbl">Attacker</span>
+            </div>
+
+            <!-- EMAIL 1: Attacker → User (red, malicious) -->
+            <div class="ns-email ns-email-1">
+                <div class="ns-email-trail"></div>
+                <svg width="20" height="15" viewBox="0 0 22 16" fill="none">
+                    <rect x="1" y="1" width="20" height="14" rx="2" fill="rgba(239,68,68,0.15)" stroke="rgba(239,68,68,0.75)" stroke-width="1.2"/>
+                    <path d="M1 3l10 7 10-7" stroke="rgba(239,68,68,0.75)" stroke-width="1.2" stroke-linecap="round"/>
+                    <circle cx="11" cy="9" r="1.2" fill="#f87171"/>
+                </svg>
+            </div>
+
+            <!-- USER (center) -->
+            <div class="ns-char ns-user-char">
+                <div class="ns-user-worry-ring"></div>
+                <svg class="ns-user-icon" width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <circle cx="14" cy="9" r="5" fill="rgba(99,102,241,0.1)" stroke="rgba(200,200,220,0.6)" stroke-width="1.2"/>
+                    <path d="M5 24c0-5 4-8 9-8s9 3 9 8" fill="rgba(99,102,241,0.08)" stroke="rgba(200,200,220,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+                <div class="ns-user-qmark">?</div>
+                <div class="ns-user-safe-badge">
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <span class="ns-char-lbl ns-user-lbl">User</span>
+            </div>
+
+            <!-- EMAIL 2: User → PhishGuard (amber, forwarded for verification) -->
+            <div class="ns-email ns-email-2">
+                <svg width="20" height="15" viewBox="0 0 22 16" fill="none">
+                    <rect x="1" y="1" width="20" height="14" rx="2" fill="rgba(251,191,36,0.12)" stroke="rgba(251,191,36,0.55)" stroke-width="1.2"/>
+                    <path d="M1 3l10 7 10-7" stroke="rgba(251,191,36,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+                    <path d="M8 8l4 3 4-3" stroke="#fbbf24" stroke-width="0.8" stroke-linecap="round"/>
+                </svg>
+            </div>
+
+            <!-- PHISHGUARD SHIELD (right) -->
+            <div class="ns-char ns-shield-char">
+                <div class="ns-scan-ring ns-ring-1"></div>
+                <div class="ns-scan-ring ns-ring-2"></div>
+                <div class="ns-shield-pulse"></div>
+                <svg class="ns-shield-icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <path d="M16 3L5 8v8c0 7 11 13 11 13s11-6 11-13V8L16 3z" fill="rgba(16,185,129,0.18)" stroke="#10b981" stroke-width="1.5"/>
+                    <path class="ns-shield-check" d="M11 16l3.5 3.5L21 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path class="ns-shield-x" d="M12 12l8 8M20 12l-8 8" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span class="ns-char-lbl">PhishGuard</span>
+            </div>
+
+            <!-- VERDICT BADGE above shield -->
+            <div class="ns-verdict-phish">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>PHISHING</span>
+            </div>
+
+            <!-- Phase descriptions -->
+            <div class="ns-desc">
+                <span class="ns-d ns-d1">Attacker crafting phishing email...</span>
+                <span class="ns-d ns-d2">Malicious email sent to victim...</span>
+                <span class="ns-d ns-d3">User submits email to PhishGuard...</span>
+                <span class="ns-d ns-d4">Scanning &amp; analyzing threats...</span>
+                <span class="ns-d ns-d5">✓ Verdict delivered · User is safe</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nav links + button -->
+    <div class="flex items-center gap-4">
+        <a href="#stats" class="nav-link">Stats</a>
+        <a href="#about" class="nav-link">About</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+        <button id="themeToggle" onclick="toggleTheme()" class="theme-toggle-btn" title="Toggle theme">
+            <svg id="themeIconDark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg id="themeIconLight" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <button id="addExtensionBtn" onclick="downloadAndInstall()" class="ext-btn flex items-center gap-2 px-4 py-2.5 rounded-xl">
+            <i data-lucide="puzzle" class="w-4 h-4"></i>
+            <span class="text-[10px] font-black tracking-[0.2em] uppercase">Add to Browser</span>
+            <span class="ext-badge">NEW</span>
+        </button>
+    </div>
+    </div>
+</nav>
+
+<!-- ═══════════════════════════ EXTENSION MODAL ═══════════════════════════ -->
+<div id="extensionModal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
+    <div class="modal-backdrop absolute inset-0" onclick="closeExtensionModal()"></div>
+    <div class="modal-panel relative w-full max-w-lg rounded-3xl p-8 overflow-hidden">
+        <div class="modal-glow-orb"></div>
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-emerald-500/15 rounded-xl border border-emerald-500/30">
+                    <i data-lucide="puzzle" class="w-5 h-5 text-emerald-400"></i>
+                </div>
+                <div>
+                    <h3 class="text-white font-black tracking-[0.15em] uppercase text-sm">PhishGuard Extension</h3>
+                    <p class="text-[9px] text-emerald-400/70 tracking-[0.3em] uppercase font-mono">AI Detector v1.0</p>
+                </div>
+            </div>
+            <button onclick="closeExtensionModal()" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <p class="text-slate-300 text-xs font-mono leading-relaxed mb-7 border-l-2 border-emerald-500/40 pl-4">
+            <span class="text-emerald-400 font-bold">PhishGuard-Extension.zip</span> is downloading now. Once saved, follow these steps to load it into your browser.
+        </p>
+        <div class="flex flex-col gap-3 mb-7">
+            <div class="step-item">
+                <div class="step-number">1</div>
+                <div class="flex-1">
+                    <p class="text-white text-xs font-bold mb-1">Open Extensions Manager</p>
+                    <div class="code-chip" onclick="copyToClipboard('chrome://extensions/')">
+                        <i data-lucide="copy" class="w-3 h-3 text-slate-400 flex-shrink-0"></i>
+                        <code class="text-emerald-400 text-[11px] font-mono">chrome://extensions/</code>
+                        <span class="copy-hint">click to copy</span>
+                    </div>
+                    <p class="text-slate-500 text-[10px] mt-1 font-mono">Paste this in your browser address bar</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <div class="flex-1">
+                    <p class="text-white text-xs font-bold mb-1">Enable Developer Mode</p>
+                    <p class="text-slate-400 text-[11px] font-mono leading-relaxed">Toggle the <span class="text-white bg-white/10 px-1.5 py-0.5 rounded font-bold">Developer mode</span> switch in the top-right of the extensions page.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="flex-1">
+                    <p class="text-white text-xs font-bold mb-1">Extract & Load Unpacked</p>
+                    <p class="text-slate-400 text-[11px] font-mono leading-relaxed">Extract the ZIP, click <span class="text-white bg-white/10 px-1.5 py-0.5 rounded font-bold">Load unpacked</span>, then select the <span class="text-emerald-400">PhishGuard-Extension/</span> folder.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">4</div>
+                <div class="flex-1">
+                    <p class="text-white text-xs font-bold mb-1">Start PhishGuard Server First</p>
+                    <p class="text-slate-400 text-[11px] font-mono leading-relaxed">The extension needs the Flask server running at <span class="text-emerald-400">127.0.0.1:5000</span> to function.</p>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-white/10 pt-5">
+            <p class="text-[9px] text-slate-500 uppercase tracking-[0.3em] font-mono mb-3">Quick access for other browsers</p>
+            <div class="flex gap-2 flex-wrap">
+                <button onclick="copyToClipboard('chrome://extensions/')" class="browser-chip"><i data-lucide="chrome" class="w-3 h-3"></i> Chrome</button>
+                <button onclick="copyToClipboard('edge://extensions/')" class="browser-chip"><i data-lucide="globe" class="w-3 h-3"></i> Edge</button>
+                <button onclick="copyToClipboard('brave://extensions/')" class="browser-chip"><i data-lucide="shield" class="w-3 h-3"></i> Brave</button>
+            </div>
+        </div>
+        <div id="copyToast" class="copy-toast hidden">
+            <i data-lucide="check-circle" class="w-3 h-3 text-emerald-400"></i>
+            <span>Copied to clipboard!</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════ SCROLLABLE PAGE CONTENT ═══════════════════════════ -->
+<div class="relative z-10 pt-28">
+
+    <!-- ── SECTION 1: SCANNER ── -->
+    <section id="scanner" class="flex flex-col items-center justify-center px-6 pt-4 pb-6" style="min-height:calc(100vh - 80px)">
+        <div class="w-full max-w-6xl glass-terminal rounded-3xl relative overflow-hidden flex flex-col transition-all duration-700" style="height:460px">
+            <div id="scanBar" class="scanning-bar hidden"></div>
+
+            {% if not prediction %}
+            <form id="scanForm" action="/predict" method="POST" class="h-full flex flex-col p-10 animate-in fade-in">
+                <div class="flex justify-between items-center mb-8">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="activity" class="w-5 h-5 animate-pulse" style="color:var(--accent)"></i>
+                        <h2 class="text-xs font-black tracking-[0.3em] uppercase" style="color:var(--txt-secondary)">Phishing Heuristics Engine</h2>
+                    </div>
+                    {% if error_msg %}
+                    <span class="text-[10px] font-mono px-3 py-1 rounded uppercase animate-pulse" style="color:#dc2626;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25)">[!] {{ error_msg }}</span>
+                    {% else %}
+                    <span id="systemStatus" class="text-[10px] font-mono px-2 py-1 rounded uppercase tracking-widest" style="color:var(--accent);background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25)">SYSTEM ONLINE</span>
+                    {% endif %}
+                </div>
+                <textarea id="emailText" name="email_content" required
+                    placeholder="DROP DATA PAYLOAD HERE FOR DEEP-LAYER INSPECTION..."
+                    class="flex-1 bg-transparent border-none outline-none font-mono text-2xl resize-none" style="color:var(--txt-primary)"></textarea>
+                <div id="terminalConsole" class="hidden flex-1 rounded-2xl p-6 mb-4 font-mono text-[11px] overflow-y-auto" style="background:rgba(0,0,0,0.04);border:1px solid var(--border)">
+                    <div id="logLines" class="flex flex-col gap-1"></div>
+                </div>
+                <button type="submit" id="submitBtn" class="w-full font-black py-5 rounded-2xl tracking-[0.5em] uppercase backdrop-blur-md transition-all flex items-center justify-center gap-3" style="background:var(--accent);color:#fff;border:none;box-shadow:0 4px 20px rgba(16,185,129,0.3)">
+                    <i id="btnSpinner" data-lucide="loader-2" class="w-5 h-5 animate-spin hidden"></i>
+                    <span id="btnText">EXECUTE SCAN</span>
+                </button>
+            </form>
+
+            {% else %}
+            <div class="h-full flex flex-col p-8 animate-in zoom-in-95 text-white">
+
+                <!-- Verdict header row -->
+                <div class="flex justify-between items-start mb-6 pb-5 result-header-border">
+                    <div>
+                        <p class="result-label">Analysis Verdict</p>
+                        <h2 class="result-verdict {{ 'result-phishing' if prediction == 'PHISHING' else 'result-legit' }}">{{ prediction }}</h2>
+                    </div>
+                    <div class="text-right">
+                        <p class="result-label">Threat Severity</p>
+                        <p class="result-score {{ 'result-score-danger' if prediction == 'PHISHING' else 'result-score-safe' }}">{{ risk_score }}%</p>
+                    </div>
+                </div>
+
+                <!-- Two-column body -->
+                <div class="flex-1 grid grid-cols-2 gap-5 overflow-hidden min-h-0">
+
+                    <!-- LEFT: Submitted content + Download Report + New Scan -->
+                    <div class="flex flex-col gap-3 min-h-0">
+                        <div class="result-panel flex-1 flex flex-col min-h-0">
+                            <p class="result-panel-label">Submitted Content</p>
+                            <div class="flex-1 overflow-y-auto font-mono text-sm leading-relaxed result-content-text">{{ original_text }}</div>
+                        </div>
+                        <form action="/download_report" method="POST">
+                            <input type="hidden" name="prediction" value="{{ prediction }}">
+                            <input type="hidden" name="score" value="{{ risk_score }}">
+                            <input type="hidden" name="original_text" value="{{ original_text }}">
+                            <input type="hidden" name="google_status" value="{{ google_status }}">
+                            {% for word in identified_words %}<input type="hidden" name="identified_words" value="{{ word }}">{% endfor %}
+                            <button class="result-btn result-btn-accent w-full">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                DOWNLOAD REPORT
+                            </button>
+                        </form>
+                        <a href="/" class="result-btn result-btn-ghost block text-center">NEW SCAN</a>
+                    </div>
+
+                    <!-- RIGHT: Forensic Markers + Reputation Status only -->
+                    <div class="result-panel flex flex-col min-h-0">
+                        <p class="result-panel-label result-panel-label-danger">Forensic Markers</p>
+                        <div class="flex-1 overflow-y-auto">
+                            {% if identified_words %}
+                            <div class="flex flex-wrap gap-2 mb-5">
+                                {% for word in identified_words %}
+                                <span class="marker-chip">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    {{ word }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-xs italic result-no-markers">No markers identified.</p>
+                            {% endif %}
+
+                            <div class="result-status-box">
+                                <p class="result-label mb-3">Reputation Status</p>
+                                <div class="result-status-inner {% if google_status == 'DANGEROUS' or prediction == 'PHISHING' %}result-status-danger{% else %}result-status-safe{% endif %}">
+                                    {% if google_status == 'DANGEROUS' or prediction == 'PHISHING' %}
+                                    <i data-lucide="shield-alert" class="w-5 h-5 text-red-500 animate-pulse"></i>
+                                    <p class="font-black uppercase text-red-500">Dangerous</p>
+                                    {% else %}
+                                    <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+                                    <p class="font-black uppercase text-emerald-400">Clean</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Live counters under scanner -->
+        <div class="flex items-center gap-16 mt-10">
+            <div class="text-center">
+                <p class="font-bold uppercase tracking-widest mb-1" style="font-size:11px;color:rgba(255,255,255,0.55);text-shadow:0 1px 6px rgba(0,0,0,0.6)">Payloads Audited</p>
+                <p class="text-4xl font-black stat-counter" data-target="{{ total_scans }}" style="font-family:'Bricolage Grotesque',sans-serif;color:rgba(255, 255, 255, 0.95);text-shadow:0 2px 16px rgba(0,0,0,0.55)">0</p>
+            </div>
+            <div class="w-px h-10" style="background:rgba(255,255,255,0.15)"></div>
+            <div class="text-center">
+                <p class="font-bold uppercase tracking-widest mb-1" style="font-size:11px;color:rgba(255,255,255,0.55);text-shadow:0 1px 6px rgba(0,0,0,0.6)">Threats Detected</p>
+                <p class="text-4xl font-black stat-counter text-red-400" data-target="{{ total_phishing }}" style="font-family:'Bricolage Grotesque',sans-serif,color:rgba(255, 0, 0, 0.95);text-shadow:0 2px 16px rgba(0,0,0,0.5)">0</p>
+            </div>
+            <div class="w-px h-10" style="background:rgba(255,255,255,0.15)"></div>
+            <div class="flex items-center gap-2 px-5 py-2 rounded-full" style="background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.16);backdrop-filter:blur(12px)">
+                <i data-lucide="zap" class="w-3 h-3 text-emerald-400"></i>
+                <p id="latencyDisplay" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.75);letter-spacing:0.08em;text-transform:uppercase;text-shadow:0 1px 6px rgba(0,0,0,0.5)">Latency: 14ms</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── SECTION 2: PHISHING STATS ── -->
+    <section id="stats" class="px-6 py-24 max-w-6xl mx-auto">
+        <div class="section-header mb-16">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-8 h-px bg-emerald-600"></div>
+                <span class="text-emerald-600 font-semibold tracking-widest uppercase" style="font-size:12px">Global Intelligence</span>
+            </div>
+            <h2 class="text-5xl font-black tracking-tight" style="font-family:'Bricolage Grotesque',sans-serif">Phishing <span class="text-emerald-600">By The Numbers</span></h2>
+            <p class="mt-4 max-w-xl" style="font-size:17px;color:rgba(255,255,255,0.60)">Real-world data on the scale and impact of phishing attacks in 2024.</p>
+        </div>
+
+        <!-- Big stat cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="stat-card group">
+                <div class="stat-icon"><i data-lucide="mail-warning" class="w-5 h-5 text-red-500"></i></div>
+                <p class="text-4xl font-black mt-3" style="font-family:'Bricolage Grotesque',sans-serif">3.4B</p>
+                <p class="mt-1" style="font-size:13px;color:rgba(255,255,255,0.50);font-weight:500">Phishing emails sent daily</p>
+                <div class="stat-bar" style="--bar-w:92%;--bar-c:#ef4444"></div>
+            </div>
+            <div class="stat-card group">
+                <div class="stat-icon"><i data-lucide="trending-up" class="w-5 h-5 text-orange-500"></i></div>
+                <p class="text-4xl font-black mt-3" style="font-family:'Bricolage Grotesque',sans-serif">+61%</p>
+                <p class="mt-1" style="font-size:13px;color:rgba(255,255,255,0.50);font-weight:500">Rise in attacks since 2022</p>
+                <div class="stat-bar" style="--bar-w:61%;--bar-c:#f97316"></div>
+            </div>
+            <div class="stat-card group">
+                <div class="stat-icon"><i data-lucide="dollar-sign" class="w-5 h-5 text-yellow-600"></i></div>
+                <p class="text-4xl font-black mt-3" style="font-family:'Bricolage Grotesque',sans-serif">$17.7B</p>
+                <p class="mt-1" style="font-size:13px;color:rgba(255,255,255,0.50);font-weight:500">Annual financial losses</p>
+                <div class="stat-bar" style="--bar-w:85%;--bar-c:#ca8a04"></div>
+            </div>
+            <div class="stat-card group">
+                <div class="stat-icon"><i data-lucide="clock" class="w-5 h-5 text-blue-600"></i></div>
+                <p class="text-4xl font-black mt-3" style="font-family:'Bricolage Grotesque',sans-serif">21s</p>
+                <p class="mt-1" style="font-size:13px;color:rgba(255,255,255,0.50);font-weight:500">Avg. time to click a phish</p>
+                <div class="stat-bar" style="--bar-w:45%;--bar-c:#2563eb"></div>
+            </div>
+        </div>
+
+        <!-- Breakdown rows -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="info-card">
+                <p class="font-bold uppercase tracking-widest mb-6" style="font-size:13px;color:#10b981;letter-spacing:0.1em">Attack Vector Breakdown</p>
+                <div class="flex flex-col gap-4">
+                    <div class="bar-row"><span class="bar-label">Email</span><div class="bar-track"><div class="bar-fill" style="width:96%;background:#ef4444"></div></div><span class="bar-pct">96%</span></div>
+                    <div class="bar-row"><span class="bar-label">SMS / Smishing</span><div class="bar-track"><div class="bar-fill" style="width:45%;background:#f97316"></div></div><span class="bar-pct">45%</span></div>
+                    <div class="bar-row"><span class="bar-label">Voice / Vishing</span><div class="bar-track"><div class="bar-fill" style="width:28%;background:#ca8a04"></div></div><span class="bar-pct">28%</span></div>
+                    <div class="bar-row"><span class="bar-label">Social Media</span><div class="bar-track"><div class="bar-fill" style="width:19%;background:#059669"></div></div><span class="bar-pct">19%</span></div>
+                    <div class="bar-row"><span class="bar-label">Malicious URLs</span><div class="bar-track"><div class="bar-fill" style="width:72%;background:#7c3aed"></div></div><span class="bar-pct">72%</span></div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <p class="font-bold uppercase tracking-widest mb-6" style="font-size:13px;color:#10b981;letter-spacing:0.1em">Most Impersonated Brands</p>
+                <div class="flex flex-col">
+                    <div class="brand-row"><span class="brand-rank text-red-500">01</span><span class="brand-name">Microsoft</span><span class="brand-pct">33%</span></div>
+                    <div class="brand-row"><span class="brand-rank text-orange-500">02</span><span class="brand-name">Google</span><span class="brand-pct">12%</span></div>
+                    <div class="brand-row"><span class="brand-rank text-yellow-600">03</span><span class="brand-name">DHL / FedEx</span><span class="brand-pct">11%</span></div>
+                    <div class="brand-row"><span class="brand-rank" style="color:#9ca3af">04</span><span class="brand-name">LinkedIn</span><span class="brand-pct">8%</span></div>
+                    <div class="brand-row"><span class="brand-rank" style="color:#d1d5db">05</span><span class="brand-name">Amazon</span><span class="brand-pct">7%</span></div>
+                    <div class="brand-row"><span class="brand-rank" style="color:#d1d5db">06</span><span class="brand-name">PayPal</span><span class="brand-pct">6%</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── SECTION 3: ABOUT PHISHING ── -->
+    <section id="about" class="px-6 py-24 max-w-6xl mx-auto">
+        <div class="section-header mb-16">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-8 h-px bg-emerald-600"></div>
+                <span class="text-emerald-600 font-semibold tracking-widest uppercase" style="font-size:12px">Threat Intelligence</span>
+            </div>
+            <h2 class="text-5xl font-black tracking-tight" style="font-family:'Bricolage Grotesque',sans-serif">What Is <span style="color:#dc2626">Phishing?</span></h2>
+            <p class="mt-4 max-w-xl" style="font-size:17px;color:rgba(255,255,255,0.60)">Understanding the threat is the first step in defeating it.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="about-card border-red-500\/20 hover:border-red-500\/40">
+                <div class="about-icon" style="background:rgba(248,113,113,0.12);border-color:rgba(248,113,113,0.25)"><i data-lucide="fish" class="w-5 h-5 text-red-500"></i></div>
+                <h3 class="font-black uppercase tracking-wide mb-3" style="font-size:18px;color:rgba(255,255,255,0.92)">Phishing</h3>
+                <p style="font-size:15px;line-height:1.65;color:rgba(255,255,255,0.60)">Mass-distributed fraudulent emails disguised as legitimate sources to steal credentials, install malware, or trick victims into wire transfers.</p>
+            </div>
+            <div class="about-card border-orange-500\/20 hover:border-orange-500\/40">
+                <div class="about-icon" style="background:rgba(251,146,60,0.12);border-color:rgba(251,146,60,0.25)"><i data-lucide="crosshair" class="w-5 h-5 text-orange-500"></i></div>
+                <h3 class="font-black uppercase tracking-wide mb-3" style="font-size:18px;color:rgba(255,255,255,0.92)">Spear Phishing</h3>
+                <p style="font-size:15px;line-height:1.65;color:rgba(255,255,255,0.60)">Highly targeted attacks crafted for a specific individual using personal data harvested from social media and public records.</p>
+            </div>
+            <div class="about-card border-yellow-500\/20 hover:border-yellow-500\/40">
+                <div class="about-icon" style="background:rgba(250,204,21,0.1);border-color:rgba(250,204,21,0.22)"><i data-lucide="crown" class="w-5 h-5 text-yellow-600"></i></div>
+                <h3 class="font-black uppercase tracking-wide mb-3" style="font-size:18px;color:rgba(255,255,255,0.92)">Whaling</h3>
+                <p style="font-size:15px;line-height:1.65;color:rgba(255,255,255,0.60)">Executive-level spear phishing targeting CEOs, CFOs, and directors to authorize fraudulent wire transfers or expose sensitive data.</p>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <p class="font-bold uppercase tracking-widest mb-8" style="font-size:13px;color:#10b981;letter-spacing:0.1em">How a Phishing Attack Works</p>
+            <div class="relative">
+                <div class="absolute left-4 top-0 bottom-0 w-px" style="background:rgba(255,255,255,0.12)"></div>
+                <div class="flex flex-col gap-7">
+                    <div class="timeline-step"><div class="timeline-dot bg-red-500"></div><div><p class="font-bold mb-1" style="font-size:16px;color:rgba(255,255,255,0.92);font-weight:700">1. Reconnaissance</p><p style="font-size:14px;color:rgba(255,255,255,0.58);line-height:1.7">Attacker researches the target — harvesting email addresses, names, and company structure from LinkedIn, company websites, and data breaches.</p></div></div>
+                    <div class="timeline-step"><div class="timeline-dot bg-orange-500"></div><div><p class="font-bold mb-1" style="font-size:16px;color:rgba(255,255,255,0.92);font-weight:700">2. Weaponization</p><p style="font-size:14px;color:rgba(255,255,255,0.58);line-height:1.7">Crafts a convincing email with a spoofed sender address, urgency triggers ("your account will be suspended"), and a malicious link or attachment.</p></div></div>
+                    <div class="timeline-step"><div class="timeline-dot bg-yellow-500"></div><div><p class="font-bold mb-1" style="font-size:16px;color:rgba(255,255,255,0.92);font-weight:700">3. Delivery</p><p style="font-size:14px;color:rgba(255,255,255,0.58);line-height:1.7">Email is sent via compromised servers or legitimate-looking domains to bypass spam filters and reach the inbox.</p></div></div>
+                    <div class="timeline-step"><div class="timeline-dot bg-emerald-500"></div><div><p class="font-bold mb-1" style="font-size:16px;color:rgba(255,255,255,0.92);font-weight:700">4. Exploitation</p><p style="font-size:14px;color:rgba(255,255,255,0.58);line-height:1.7">Victim clicks the link, lands on a pixel-perfect fake login page, and enters credentials — which are immediately captured by the attacker.</p></div></div>
+                    <div class="timeline-step"><div class="timeline-dot" style="background:#9ca3af"></div><div><p class="font-bold mb-1" style="font-size:16px;color:rgba(255,255,255,0.92);font-weight:700">5. Exfiltration</p><p style="font-size:14px;color:rgba(255,255,255,0.58);line-height:1.7">Stolen credentials are used to access accounts, pivot into corporate networks, drain bank accounts, or sold on the dark web.</p></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div class="warn-chip"><i data-lucide="alert-circle" class="w-4 h-4 text-red-500 flex-shrink-0"></i><span>Urgent language &amp; threats</span></div>
+            <div class="warn-chip"><i data-lucide="link" class="w-4 h-4 text-orange-500 flex-shrink-0"></i><span>Suspicious or misspelled URLs</span></div>
+            <div class="warn-chip"><i data-lucide="user-x" class="w-4 h-4 text-yellow-600 flex-shrink-0"></i><span>Unknown or spoofed sender</span></div>
+            <div class="warn-chip"><i data-lucide="paperclip" class="w-4 h-4 text-red-500 flex-shrink-0"></i><span>Unexpected attachments</span></div>
+            <div class="warn-chip"><i data-lucide="key" class="w-4 h-4 text-orange-500 flex-shrink-0"></i><span>Requests for credentials</span></div>
+            <div class="warn-chip"><i data-lucide="type" class="w-4 h-4 text-yellow-600 flex-shrink-0"></i><span>Poor grammar &amp; spelling</span></div>
+            <div class="warn-chip"><i data-lucide="gift" class="w-4 h-4 text-emerald-600 flex-shrink-0"></i><span>Too-good-to-be-true offers</span></div>
+            <div class="warn-chip"><i data-lucide="building-2" class="w-4 h-4 text-blue-600 flex-shrink-0"></i><span>Brand impersonation</span></div>
+        </div>
+    </section>
+
+    <!-- ── SECTION 4: FAQ ── -->
+    <section id="faq" class="px-6 py-24 max-w-6xl mx-auto">
+        <div class="section-header mb-16">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-8 h-px bg-emerald-600"></div>
+                <span class="text-emerald-600 font-semibold tracking-widest uppercase" style="font-size:12px">Knowledge Base</span>
+            </div>
+            <h2 class="text-5xl font-black tracking-tight" style="font-family:'Bricolage Grotesque',sans-serif">Frequently Asked <span class="text-emerald-600">Questions</span></h2>
+        </div>
+
+        <div class="flex flex-col gap-3" id="faqList">
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>How does PhishGuard detect phishing emails?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="faq-answer">
+                    PhishGuard uses a 4-layer defense grid: (1) a Neural Linguistic Engine using TF-IDF vectorization + Naive Bayes / Random Forest ML to analyze intent, (2) Heuristic keyword & pattern matching for known phishing triggers, (3) Google Safe Browsing API for real-time URL reputation checks, and (4) an Identity Layer with domain whitelisting and brand spoof detection.
+                </div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>What should I paste into the scanner?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="faq-answer">
+                    Paste the full raw text of the suspicious email — including the subject line, sender name, body, and any URLs. The more context you provide, the more accurate the analysis. You can also paste just the email body or a suspicious URL by itself.
+                </div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>How accurate is the PhishGuard ML model?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="faq-answer">
+                    The underlying Naive Bayes / Random Forest model was trained on a curated dataset of labelled phishing and legitimate emails. Combined with the heuristic and reputation layers, PhishGuard achieves high precision on common phishing patterns. However, no system is 100% accurate — always apply human judgment for borderline cases.
+                </div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>What is the browser extension for?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="faq-answer">
+                    The PhishGuard browser extension lets you scan suspicious emails directly from your browser without switching tabs. It connects to the local Flask server at 127.0.0.1:5000. Click "Add to Browser" to download and install it in Developer Mode — full instructions are provided in the modal.
+                </div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>Does PhishGuard store my emails?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="faq-answer">
+                    PhishGuard stores only the verdict (PHISHING or LEGITIMATE) and risk score in a local SQLite database for the scan history counter. The actual email content is never persisted to disk — it exists only in memory during analysis and is discarded immediately after.
+                </div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>What are Forensic Markers?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="faq-answer">
+                    Forensic Markers are specific high-risk words and phrases the AI identified in your email that are statistically common in phishing attempts — such as "urgent", "verify", "suspended", "password", "login", and "account". These are the Explainable AI (XAI) outputs that justify the verdict, rather than leaving the decision a black box.
+                </div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>I received a phishing email — what should I do?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="faq-answer">
+                    1. Do not click any links or download attachments. 2. Report it to your IT/security team or email provider (use "Report phishing" in Gmail/Outlook). 3. If you already clicked a link, change your passwords immediately and enable 2FA. 4. If financial details were entered, contact your bank immediately. 5. Report to the national cybercrime agency in your country.
+                </div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-question">
+                    <span>Can I use PhishGuard via API?</span>
+                    <i data-lucide="chevron-down" class="faq-chevron w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="faq-answer">
+                    Yes. PhishGuard exposes a REST API at <code class="text-emerald-400">POST /predict_api</code>. Send a JSON body with <code class="text-emerald-400">{"email_content": "..."}</code> and receive a JSON response with verdict, score, flags, and identified forensic markers. This allows integration with email clients, SIEM systems, or CI/CD pipelines.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── FOOTER ── -->
+    <footer style="background:#fff;border-top:1.5px solid #e0dbd2;padding:40px">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-600"></i>
+                <span class="font-black tracking-wide uppercase" style="font-family:'Bricolage Grotesque',sans-serif;font-size:15px;color:#1c1917">PHISH<span style="color:#059669">GUARD</span></span>
+                <span style="color:#a09b95;font-family:'JetBrains Mono',monospace;font-size:11px">v5.0</span>
+            </div>
+            <p style="color:#a09b95;font-size:13px;font-family:'DM Sans',sans-serif">Built with ML + Flask · Neural Security Terminal · Stay vigilant</p>
+            <div class="flex items-center gap-2" style="color:#a09b95;font-size:13px;font-family:'DM Sans',sans-serif">
+                <i data-lucide="lock" class="w-4 h-4"></i>
+                <span>All analysis runs locally</span>
+            </div>
+        </div>
+    </footer>
+
+</div><!-- end scrollable -->
+
+<script>
+    lucide.createIcons();
+
+    // Pulse dots
+    const dots = document.querySelectorAll('.pulse-dot');
+    function moveDots() {
+        dots.forEach(dot => {
+            dot.style.left = `${Math.floor(Math.random()*90)+5}%`;
+            dot.style.top  = `${Math.floor(Math.random()*80)+10}%`;
+        });
+    }
+    setInterval(moveDots, 4000); moveDots();
+
+    // Smooth scroll for nav links
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
+            e.preventDefault();
+            document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+    // Counters
+    function animateCounters() {
+        document.querySelectorAll('.stat-counter').forEach(counter => {
+            const target = parseInt(counter.getAttribute('data-target')) || 0;
+            const start = performance.now();
+            const tick = now => {
+                const p = Math.min((now - start) / 2000, 1);
+                counter.innerText = Math.floor((1 - Math.pow(1-p, 3)) * target);
+                if (p < 1) requestAnimationFrame(tick);
+                else { counter.innerText = target; counter.classList.add('animate-pulse-once'); }
+            };
+            requestAnimationFrame(tick);
+        });
+    }
+    window.addEventListener('load', animateCounters);
+
+    // Animated stat bars on scroll
+    const barObserver = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.querySelectorAll('.bar-fill').forEach(b => {
+                    // width is already set via inline style; just add transition trigger class
+                    b.style.transition = 'width 1.2s cubic-bezier(0.22,1,0.36,1)';
+                    const w = b.style.width;
+                    b.style.width = '0';
+                    requestAnimationFrame(() => requestAnimationFrame(() => { b.style.width = w; }));
+                });
+                barObserver.unobserve(e.target);
+            }
+        });
+    }, { threshold: 0.2 });
+    document.querySelectorAll('#stats').forEach(s => barObserver.observe(s));
+
+    // Scan form
+    document.getElementById('scanForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = this;
+        const textarea = document.getElementById('emailText');
+        if (textarea.value.trim().length < 2) { alert('CRITICAL: Input Stream Empty. Paste data payload.'); return; }
+
+        const consoleBox = document.getElementById('terminalConsole');
+        const logContainer = document.getElementById('logLines');
+        const scanBar = document.getElementById('scanBar');
+        const btn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const btnSpinner = document.getElementById('btnSpinner');
+
+        logContainer.innerHTML = '';
+        textarea.classList.add('hidden');
+        consoleBox.classList.remove('hidden');
+        scanBar.classList.remove('hidden');
+        btn.disabled = true;
+        btnText.innerText = 'PROCESSING...';
+        btnSpinner.classList.remove('hidden');
+
+        const logs = [
+            'Establishing secure node connection...',
+            'Extracting linguistic vectors...',
+            'Running Neural Classification...',
+            'Querying Global Reputation Database...',
+            'Verifying Identity Whitelist...',
+            'Finalizing Forensic Verdict...'
+        ];
+        let i = 0;
+        const t = setInterval(() => {
+            if (i < logs.length) {
+                const line = document.createElement('div');
+                line.className = 'opacity-0 translate-x-[-10px] transition-all duration-300 py-1 font-mono text-emerald-500/80';
+                line.innerText = `> ${logs[i++]}`;
+                logContainer.appendChild(line);
+                setTimeout(() => line.classList.remove('opacity-0','translate-x-[-10px]'), 10);
+            } else {
+                clearInterval(t);
+                btnText.innerText = 'ANALYSING...';
+                form.submit();
+            }
+        }, 500);
+    });
+
+    // Extension download + modal
+    function downloadAndInstall() {
+        window.location.href = '/download_extension';
+        setTimeout(openExtensionModal, 800);
+    }
+
+    function openExtensionModal() {
+        const modal = document.getElementById('extensionModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        requestAnimationFrame(() => modal.querySelector('.modal-panel').classList.add('modal-open'));
+        lucide.createIcons();
+    }
+
+    function closeExtensionModal() {
+        const modal = document.getElementById('extensionModal');
+        modal.querySelector('.modal-panel').classList.remove('modal-open');
+        setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 300);
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeExtensionModal(); });
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            const toast = document.getElementById('copyToast');
+            toast.classList.remove('hidden'); toast.classList.add('flex');
+            lucide.createIcons();
+            setTimeout(() => { toast.classList.add('hidden'); toast.classList.remove('flex'); }, 2500);
+        });
+    }
+
+    // FAQ accordion
+    function toggleFaq(item) {
+        const isOpen = item.classList.contains('faq-open');
+        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('faq-open'));
+        if (!isOpen) item.classList.add('faq-open');
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+        const body = document.body;
+        const isDark = !body.classList.contains('light-mode');
+        body.classList.toggle('light-mode', isDark);
+        document.getElementById('themeIconDark').style.display  = isDark ? 'none'  : '';
+        document.getElementById('themeIconLight').style.display = isDark ? ''      : 'none';
+        localStorage.setItem('pg-theme', isDark ? 'light' : 'dark');
+    }
+    // Restore saved theme
+    if (localStorage.getItem('pg-theme') === 'light') {
+        document.body.classList.add('light-mode');
+        document.getElementById('themeIconDark').style.display  = 'none';
+        document.getElementById('themeIconLight').style.display = '';
+    }
+</script>
+</body>
+</html>
